@@ -294,25 +294,27 @@
       }
     }
 
-    function crearBotonVolver(){
-      // crea y muestra un botón sencillo para volver (opcional)
-      const boton = document.createElement('button');
-      boton.textContent = 'Volver al inicio 💕';
-      boton.style.marginTop = '12px';
-      boton.style.padding = '10px 18px';
-      boton.style.borderRadius = '22px';
-      boton.style.border = 'none';
-      boton.style.background = 'linear-gradient(90deg,var(--pink),#ff1493)';
-      boton.style.color = 'white';
-      boton.style.fontSize = '1rem';
-      boton.style.cursor = 'pointer';
-      boton.onclick = () => {
-        // si tuvieras un index.html lo puedes abrir con:
-        // window.location.href = 'index.html';
-        // por ahora simplemente hacemos scroll arriba
-        window.scrollTo({top:0,behavior:'smooth'});
-      };
-      // añadir después del mensaje final
+  function crearBotonVolver(){
+  const boton = document.createElement('button');
+  boton.textContent = 'Continuar 💕';
+  boton.style.marginTop = '12px';
+  boton.style.padding = '10px 18px';
+  boton.style.borderRadius = '22px';
+  boton.style.border = 'none';
+  boton.style.background = 'linear-gradient(90deg,var(--pink),#ff1493)';
+  boton.style.color = 'white';
+  boton.style.fontSize = '1rem';
+  boton.style.cursor = 'pointer';
+
+  boton.onclick = () => {
+    window.location.href = 'cuestionario.html';
+  };
+
+  const cont = document.getElementById('mensajeFinal');
+  cont.insertAdjacentElement('afterend', boton);
+}
+
+    // añadir después del mensaje final
       const cont = document.getElementById('mensajeFinal');
       cont.insertAdjacentElement('afterend', boton);
     }
@@ -323,4 +325,5 @@
   </script>
 </body>
 </html>
+
 

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rompecabezas para Ti 💞</title>
+  <style>
+    :root{
+      --pink:#ff69b4;
+      --bg1:#0b0010;
+      --bg2:#200018;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+    }
+    body {
+      margin: 0;
+      padding: 30px 20px;
+      background: linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: white;
+      font-family: "Poppins", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-y: auto; /* permite scroll */
+      box-sizing: border-box;
+    }
+
+    h1{
+      font-size: 2rem;
+      color: #ffb6c1;
+      text-shadow: 0 0 12px var(--pink);
+      margin: 6px 0 18px;
+      text-align:center;
+    }
+
+    .puzzle-wrap{
+      width: 90vw;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .puzzle-container {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr); /* 6 x 4 = 24 */
+      gap: 2px;
+      width: 100%;
+      aspect-ratio: 3 / 2; /* ajuste visual */
+      background: transparent;
+      padding: 8px;
+      border-radius: 12px;
+      border: 2px solid var(--pink);
+      box-sizing: border-box;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .piece {
+      background-size: calc(100% * 6) calc(100% * 4); /* columnas x filas */
+      background-repeat: no-repeat;
+      min-height: 0;
+      aspect-ratio: 1 / 1;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-drag: none;
+      transition: transform .18s ease, box-shadow .18s ease;
+      display:block;
+    }
+
+    .piece.selected{
+      transform: scale(1.04);
+      box-shadow: 0 6px 18px rgba(0,0,0,.5);
+      outline: 3px solid rgba(255,255,255,.12);
+    }
+
+    #mensajeFinal{
+      margin-top: 34px;
+      font-size: 1.6rem;
+      color: #ffb6c1;
+      text-align:center;
+      display:none;
+      animation: fadeIn .9s ease both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px) scale(.98) }
+      to { opacity: 1; transform: translateY(0) scale(1) }
+    }
+
+    /* corazones flotando */
+    .heart {
+      position: fixed;
+      pointer-events: none;
+      font-size: 18px;
+      animation: floatUp linear forwards;
+      z-index: 2000;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(.9); opacity:1; }
+      100% { transform: translateY(-220px) scale(1.6); opacity:0; }
+    }
+
+    /* adaptaciones móviles */
+    @media (max-width:600px){
+      h1{ font-size:1.4rem; }
+      .puzzle-container{ aspect-ratio: 4/3; }
+      .heart{ font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>💖 Arma este pequeño rompecabezas 💖</h1>
+
+  <div class="puzzle-wrap">
+    <div class="puzzle-container" id="puzzle"></div>
+  </div>
+
+  <h2 id="mensajeFinal">Eres maravillosa, Tatiana. Te amo 💞</h2>
+
+  <script>
+    // ===== CONFIG =====
+    // PON EL NOMBRE CORRECTO AQUÍ (imagen.webp, imagen.jpg, imagen.png...)
+    const imagen = "image.webp";
+    const filas = 4;
+    const columnas = 6;
+    // ==================
+
+    const puzzle = document.getElementById("puzzle");
+    const total = filas * columnas;
+
+    // Generar una lista con las coordenadas reales de las piezas
+    const coords = [];
+    for (let y=0; y<filas; y++){
+      for (let x=0; x<columnas; x++){
+        coords.push({x,y});
+      }
+    }
+
+    // Creamos un array de índices y lo mezclamos (Fisher-Yates)
+    function mezclar(array){
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    const indices = Array.from({length: total}, (_,i)=>i);
+    mezclar(indices);
+
+    // Crear los divs en el DOM en orden de la cuadrícula (0..total-1),
+    // pero asignar a cada div UNA PIEZA (pieceId) según indices mezclados.
+    indices.forEach((pieceIdx, domIndex) => {
+      const piezaCoord = coords[pieceIdx]; // cuál parte de la imagen corresponde a esta pieza
+      const div = document.createElement("div");
+      div.className = "piece";
+      // datos que identifican la pieza (no cambian cuando se intercambia)
+      div.dataset.pieceX = piezaCoord.x;
+      div.dataset.pieceY = piezaCoord.y;
+
+      // el 'domIndex' indica la casilla donde está colocada actualmente (0..23)
+      // para visualizar, el backgroundPosition debe mostrar la porción 'piezaCoord'
+      const posX = (piezaCoord.x / (columnas - 1)) * 100;
+      const posY = (piezaCoord.y / (filas - 1)) * 100;
+      div.style.backgroundImage = `url("${imagen}")`;
+      div.style.backgroundPosition = `${posX}% ${posY}%`;
+      div.style.backgroundSize = `${columnas * 100}% ${filas * 100}%`;
+
+      puzzle.appendChild(div);
+    });
+
+    // Intercambio por toque/click: seleccionar una pieza y después otra -> swap
+    let primera = null;
+    puzzle.addEventListener('click', (e) => {
+      const target = e.target;
+      if (!target.classList.contains('piece')) return;
+
+      // seleccionar/des-seleccionar
+      if (!primera) {
+        primera = target;
+        primera.classList.add('selected');
+        return;
+      }
+
+      // si toca la misma, deselecciona
+      if (primera === target) {
+        primera.classList.remove('selected');
+        primera = null;
+        return;
+      }
+
+      // INTERCAMBIAR: swap del background y swap de DATA ATTRS 'current placement'
+      // => En lugar de mover DOM, intercambiamos los backgroundPosition y,
+      //    lo más importante: intercambiamos los atributos que indican qué pieza
+      //    está en cada casilla: dataset.currentPieceX / currentPieceY
+      //
+      // Para hacerlo robusto, vamos a guardar en cada casilla los datos 'currentX/currentY'
+      // que cambian cuando intercambiamos (esto es distinto a pieceX/pieceY que son la identidad)
+      ensureCurrentData(primera);
+      ensureCurrentData(target);
+
+      // swap current coords
+      const p1x = primera.dataset.currentX;
+      const p1y = primera.dataset.currentY;
+      const p2x = target.dataset.currentX;
+      const p2y = target.dataset.currentY;
+
+      // swap visual backgrounds
+      const bg1 = primera.style.backgroundPosition;
+      const bg2 = target.style.backgroundPosition;
+      primera.style.backgroundPosition = bg2;
+      target.style.backgroundPosition = bg1;
+
+      // swap current data
+      primera.dataset.currentX = p2x;
+      primera.dataset.currentY = p2y;
+      target.dataset.currentX = p1x;
+      target.dataset.currentY = p1y;
+
+      // limpiar selección
+      primera.classList.remove('selected');
+      primera = null;
+
+      // comprobar si completado
+      verificarPuzzle();
+    });
+
+    // Si ningún elemento tiene currentX/currentY los inicializa: la "pieza actual" empieza siendo la misma que la identidad
+    function ensureCurrentData(el){
+      if (typeof el.dataset.currentX === 'undefined'){
+        el.dataset.currentX = el.dataset.pieceX;
+        el.dataset.currentY = el.dataset.pieceY;
+      }
+    }
+
+    // Verificación: la casilla en índice (x,y) está correcta si
+    // el elemento en esa casilla tiene currentX === x y currentY === y.
+    function verificarPuzzle(){
+      const piezasActuales = Array.from(document.querySelectorAll('.piece'));
+      let ok = true;
+      for (let index=0; index<piezasActuales.length; index++){
+        const el = piezasActuales[index];
+        // calcular coords esperadas para esta casilla (index -> x,y)
+        const expectedX = index % columnas;
+        const expectedY = Math.floor(index / columnas);
+
+        // si no tiene datos 'current' inicializalos
+        ensureCurrentData(el);
+
+        if (Number(el.dataset.currentX) !== expectedX || Number(el.dataset.currentY) !== expectedY){
+          ok = false;
+          break;
+        }
+      }
+
+      if (ok) {
+        mostrarMensajeFinal();
+      }
+    }
+
+    // Mostrar mensaje final + animación de corazones
+    function mostrarMensajeFinal(){
+      const mensaje = document.getElementById('mensajeFinal');
+      if (mensaje.style.display === 'block') return; // evitar repetir
+      mensaje.style.display = 'block';
+      mensaje.style.opacity = 0;
+      mensaje.style.transform = 'translateY(8px) scale(.98)';
+      setTimeout(()=> {
+        mensaje.style.opacity = 1;
+        mensaje.style.transform = 'translateY(0) scale(1)';
+      }, 10);
+
+      crearCorazones(18);
+      // añadimos botón para volver al inicio (opcional)
+      crearBotonVolver();
+    }
+
+    function crearCorazones(cantidad = 12){
+      for (let i=0;i<cantidad;i++){
+        const h = document.createElement('div');
+        h.className = 'heart';
+        h.textContent = '💖';
+        // posición aleatoria horizontal dentro del viewport
+        h.style.left = Math.random() * (window.innerWidth - 40) + 'px';
+        h.style.bottom = '-10px';
+        h.style.animationDuration = (3 + Math.random()*2) + 's';
+        h.style.animationDelay = (Math.random()*1.2) + 's';
+        document.body.appendChild(h);
+        setTimeout(()=> h.remove(), 5500);
+      }
+    }
+
+    function crearBotonVolver(){
+      // crea y muestra un botón sencillo para volver (opcional)
+      const boton = document.createElement('button');
+      boton.textContent = 'Volver al inicio 💕';
+      boton.style.marginTop = '12px';
+      boton.style.padding = '10px 18px';
+      boton.style.borderRadius = '22px';
+      boton.style.border = 'none';
+      boton.style.background = 'linear-gradient(90deg,var(--pink),#ff1493)';
+      boton.style.color = 'white';
+      boton.style.fontSize = '1rem';
+      boton.style.cursor = 'pointer';
+      boton.onclick = () => {
+        // si tuvieras un index.html lo puedes abrir con:
+        // window.location.href = 'index.html';
+        // por ahora simplemente hacemos scroll arriba
+        window.scrollTo({top:0,behavior:'smooth'});
+      };
+      // añadir después del mensaje final
+      const cont = document.getElementById('mensajeFinal');
+      cont.insertAdjacentElement('afterend', boton);
+    }
+
+    // Nota: Si deseás empezar con las piezas en orden correcto (p.ej para debug), comentá mezclar()
+    // Para probar la verificación manualmente: descomenta la línea siguiente:
+    // setTimeout(()=> verificarPuzzle(), 1500);
+  </script>
+</body>
+</html>
